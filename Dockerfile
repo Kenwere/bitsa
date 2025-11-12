@@ -23,10 +23,21 @@ RUN composer install --no-dev --optimize-autoloader --no-interaction
 # Set permissions
 RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache
 
+# Run Laravel commands at build time
+RUN php artisan config:cache \
+    && php artisan route:cache \
+    && php artisan view:cache \
+    && php artisan migrate --force \
+    && php artisan db:seed --force \
+    && php artisan storage:link
+
 # Copy Nginx config and start script
 COPY ./deploy/nginx.conf /etc/nginx/conf.d/default.conf
 COPY ./deploy/start.sh /start.sh
 RUN chmod +x /start.sh
+
+# Expose port for Render
+EXPOSE 10000
 
 # Default command to run the app
 CMD ["/start.sh"]
