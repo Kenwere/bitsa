@@ -15,6 +15,9 @@ COPY --from=composer:2.6 /usr/bin/composer /usr/bin/composer
 # Set working directory
 WORKDIR /var/www/html
 
+RUN composer require doctrine/dbal --with-all-dependencies
+
+
 # Copy project files
 COPY . /var/www/html
 
