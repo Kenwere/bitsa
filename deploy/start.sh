@@ -1,21 +1,24 @@
 #!/bin/sh
 
+# Navigate to project root
 cd /var/www/html
 
-# Cache Laravel configs
+# Run Laravel artisan commands
 php artisan config:cache
 php artisan route:cache
 php artisan view:cache
 
-# Run migrations & seed
+# Run migrations (DB must be reachable at runtime)
 php artisan migrate --force
+
+# Optional: seed database
 php artisan db:seed --force
 
 # Create storage symlink
 php artisan storage:link
 
-# Start PHP-FPM in foreground on TCP port 9000
-php-fpm --nodaemonize --fpm-config /usr/local/etc/php-fpm.conf &
+# Start PHP-FPM in the background
+php-fpm -D
 
-# Start Nginx in foreground
-/usr/sbin/nginx -g 'daemon off;'
+# Start Nginx in the foreground
+nginx -g 'daemon off;'
