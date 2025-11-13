@@ -1,10 +1,9 @@
 # Use PHP 8.2 FPM image
 FROM php:8.2-fpm
 
-# Install system dependencies + PostgreSQL dev library + Nginx
+# Install system dependencies + PostgreSQL dev library
 RUN apt-get update && apt-get install -y \
     git unzip libzip-dev libpng-dev libonig-dev libxml2-dev zip curl libpq-dev \
-    nginx \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Install PHP extensions
@@ -16,22 +15,19 @@ COPY --from=composer:2.6 /usr/bin/composer /usr/bin/composer
 # Set working directory
 WORKDIR /var/www/html
 
-# Copy only composer files to leverage Docker caching
+# Copy composer files first for better caching
 COPY composer.json composer.lock ./
 
-# Install PHP dependencies (skip scripts for now, artisan does not exist yet)
-RUN composer install --no-dev --optimize-autoloader --no-interaction --no-scripts
+# Install PHP dependencies WITHOUT scripts (artisan doesn't exist yet)
+RUN composer install --no-dev --optimize-autoloader --no-scripts --no-interaction
 
-# Install Doctrine DBAL for migrations
-RUN composer require doctrine/dbal --with-all-dependencies --no-interaction
+# Copy project files
+COPY . /var/www/html
 
-# Copy the rest of the project files
-COPY . .
-
-# Run package discovery now that artisan exists
+# Run Laravel post-install commands now that artisan exists
 RUN php artisan package:discover --ansi
 
-# Set permissions for Laravel storage and cache
+# Set permissions for storage and cache
 RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache
 
 # Copy Nginx config and start script
@@ -39,8 +35,5 @@ COPY ./deploy/nginx.conf /etc/nginx/conf.d/default.conf
 COPY ./deploy/start.sh /start.sh
 RUN chmod +x /start.sh
 
-# Expose port 80 for Nginx
-EXPOSE 80
-
-# Default command
+# Default command to run the app
 CMD ["/start.sh"]
